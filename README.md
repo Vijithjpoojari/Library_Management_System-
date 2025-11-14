@@ -1,153 +1,131 @@
 # 📚 Library Management System using HBase & Python (HappyBase)
 
-## 🧾 Project Overview
-This project implements a **scalable and distributed Library Management System** using **HBase**, a NoSQL database built on HDFS, with a Python backend integrated via **HappyBase (Thrift API)**.  
-It manages book records, user transactions, and real-time updates while demonstrating how Big Data technologies can be applied in real-world systems.
+A scalable and distributed Library Management System built using **HBase**, **HDFS**, **Python**, and **HappyBase (Thrift API)**.  
+This project demonstrates how Big Data technologies can efficiently manage library operations such as storing book details, borrowing, and returning books — all in real-time.
 
 ---
 
-## 📝 Abstract
-This project presents the development of a distributed **Library Management System** using **HBase** integrated with Python's HappyBase client. The system stores book details, manages borrow/return operations, and tracks user activity using two HBase tables.  
-It highlights the scalability and performance of HBase while showcasing how Big Data tools can support efficient data management at scale.  
+# 🖼️ System Architecture
 
-**Key Highlights:**
-- Two HBase tables:
-  - `library_books` → stores book details  
-  - `borrowed_books` → tracks borrowed books and user info  
-- Real-time read/write operations  
-- Python + HBase integration using Thrift server  
-- Scalability, high performance & fault tolerance  
-- Supports search, borrow, and return functionalities  
 
----
++-------------------+ Thrift API +-------------------------+
+| Python App | <---------------------> | HBase Server |
+| (HappyBase Client)| | (HDFS + ZooKeeper) |
++-------------------+ +-------------------------+
+| |
+| |
++------------------ User Inputs -----------------+
 
-## 📑 Table of Contents
-- Introduction  
-- Literature Review  
-- Problem Statement  
-- Methodology  
-- Results & Discussion  
-- Conclusion  
+
+📌 **Placeholder for architecture image:**  
+`![Architecture](images/architecture.png)`
 
 ---
 
-# 🏗️ 1. Introduction
-Managing large volumes of library records requires a system that can scale, support distributed storage, and process updates in real time. Traditional relational databases struggle with these demands.
-
-**HBase** offers:
-- Horizontal scalability  
-- High performance and low latency  
-- Distributed architecture  
-- Efficient column-family storage  
-
-Python’s **HappyBase** provides simple APIs to perform CRUD operations using the Thrift server.
-
----
-
-# 📚 2. Literature Review
-Research identifies HBase as a robust NoSQL solution capable of managing massive datasets with real-time access. Studies show its use in:
-- Social media messaging systems  
-- Large medical databases  
-- Cloud-scale storage systems  
-- Highly elastic data infrastructures  
-
-These findings support the selection of HBase for scalable library management.
-
----
-
-# ❗ 3. Problem Statement
-Traditional library systems face challenges such as:
-- Poor scalability  
-- Slow real-time updates  
-- Complex data management  
-- Limited user experience  
-
-**Objective:**  
-Design a scalable library management system using **HBase** to efficiently store, retrieve, and update book and user transaction data.
-
-**Key Features Required:**
-- Book insertion  
+# 🧠 Features Demonstrated
+- Real-time borrowing & returning  
 - Search by ID, name, or author  
-- Borrow & return actions  
-- Real-time tracking  
-- Distributed handling of large datasets  
+- Two-table architecture:  
+  - `library_books`  
+  - `borrowed_books`  
+- Fault-tolerant and scalable NoSQL design  
+- Python-driven backend logic  
 
 ---
 
-# ⚙️ 4. Methodology
+# 🧩 Code Snippets
 
-### **System Setup**
-- Install & configure HBase, HDFS, and ZooKeeper  
-- Configure Thrift server for Python connectivity  
-- Set up Python environment with HappyBase  
+## **1️⃣ Connecting to HBase using HappyBase**
+```python
+import happybase
 
-### **Database Design**
-Two main HBase tables:
+connection = happybase.Connection('localhost', port=9090)
+connection.open()
+print("Connected to HBase!")
 
-| Table Name        | Column Families         | Purpose |
-|------------------|-------------------------|----------|
-| `library_books`  | `details:` (name, author) | Stores available books |
-| `borrowed_books` | `details:` (name, author, borrowed_by) | Tracks borrowed books |
+## **2️⃣ Inserting Books into library_books Table
+table = connection.table('library_books')
 
-### **Workflow**
-#### **Borrowing Books**
-- User searches by ID/name/author  
-- If available → book moves from `library_books` → `borrowed_books`  
+table.put(
+    b'101',
+    {
+        b'details:book_name': b'The Great Gatsby',
+        b'details:author': b'F. Scott Fitzgerald'
+    }
+)
 
-#### **Returning Books**
-- User identifies borrowed book  
-- Book moves back to `library_books`  
+print("Book inserted successfully!")
 
-### **Real-Time Updates**
-HBase writes through:
-- WAL (Write-Ahead Log)  
-- MemStore  
-- HFiles  
-Ensuring **fault tolerance** and **real-time consistency**.
+## **3️⃣ Searching for a Book
+def search_book(book_id):
+    table = connection.table('library_books')
+    row = table.row(str(book_id).encode())
+    return row
 
-### **Optimization**
-- Bloom filters for fast reads  
-- Block caching  
-- Region splitting for scalability  
+result = search_book(101)
+print(result)
 
----
+## **4️⃣ Borrowing a Book (Move from library_books → borrowed_books)
+library = connection.table('library_books')
+borrowed = connection.table('borrowed_books')
 
-# 📊 5. Results & Discussion
+def borrow_book(book_id, borrower_name):
+    book = library.row(str(book_id).encode())
+    
+    if not book:
+        print("Book not found!")
+        return
+    
+    # Insert into borrowed_books
+    borrowed.put(
+        str(book_id).encode(),
+        {
+            b'details:book_name': book[b'details:book_name'],
+            b'details:author': book[b'details:author'],
+            b'details:borrowed_by': borrower_name.encode()
+        }
+    )
 
-### ✔️ Key Results
-- **Horizontal Scalability:** Handles large datasets smoothly  
-- **Real-Time Processing:** Immediate borrow/return updates  
-- **Fast Queries:** Efficient search using row keys  
-- **User-Friendly Workflow:** Clear interactions for borrowing and returning  
+    # Delete from library_books
+    library.delete(str(book_id).encode())
+    print("Book borrowed successfully!")
 
-### 🔍 Discussion
-The system performs significantly better than relational DBMS for large data volumes.  
-It ensures:
-- Fast access  
-- Consistency  
-- Flexibility  
+## **5️⃣ Returning a Book
+def return_book(book_id):
+    book = borrowed.row(str(book_id).encode())
+    
+    if not book:
+        print("You do not have any borrowed books.")
+        return
 
-**Areas for Improvement:**
-- Add authentication security  
-- Implement due dates & penalties  
-- Include book categorization  
-- Improve UI/UX  
+    library.put(
+        str(book_id).encode(),
+        {
+            b'details:book_name': book[b'details:book_name'],
+            b'details:author': book[b'details:author']
+        }
+    )
 
----
+    borrowed.delete(str(book_id).encode())
+    print("Book returned successfully!")
 
-# 🏁 6. Conclusion
-This project demonstrates that **HBase** is a powerful solution for large-scale library systems.  
-It provides:
-- High scalability  
-- Real-time performance  
-- Efficient data management  
+#🖥️ Sample Input / Output
+Borrow Book – Example
+Enter Book ID to search: 101
 
-Future extensions may include:  
-✔️ Encryption & access control  
-✔️ Advanced search engine  
-✔️ Integration with cloud Big Data tools  
-✔️ Recommendation system for books  
+Book Found:
+Name: The Great Gatsby
+Author: F. Scott Fitzgerald
 
----
+Borrow this book? (y/n): y
+Enter your name: Rohan
 
-## 📂 Project Structure
+Book borrowed successfully!
+
+Return Book – Example
+Enter your borrowed book ID: 101
+
+Book found in your borrowed list.
+Returning the book...
+
+Book returned successfully!
