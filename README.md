@@ -43,7 +43,8 @@ connection = happybase.Connection('localhost', port=9090)
 connection.open()
 print("Connected to HBase!")
 
-## **2️⃣ Inserting Books into library_books Table
+Inserting Books into library_books Table
+
 table = connection.table('library_books')
 
 table.put(
@@ -56,7 +57,8 @@ table.put(
 
 print("Book inserted successfully!")
 
-## **3️⃣ Searching for a Book
+Searching for a Book
+
 def search_book(book_id):
     table = connection.table('library_books')
     row = table.row(str(book_id).encode())
@@ -65,7 +67,8 @@ def search_book(book_id):
 result = search_book(101)
 print(result)
 
-## **4️⃣ Borrowing a Book (Move from library_books → borrowed_books)
+Borrowing a Book (Move from library_books → borrowed_books)
+
 library = connection.table('library_books')
 borrowed = connection.table('borrowed_books')
 
@@ -90,7 +93,8 @@ def borrow_book(book_id, borrower_name):
     library.delete(str(book_id).encode())
     print("Book borrowed successfully!")
 
-## **5️⃣ Returning a Book
+Returning a Book
+
 def return_book(book_id):
     book = borrowed.row(str(book_id).encode())
     
@@ -109,7 +113,8 @@ def return_book(book_id):
     borrowed.delete(str(book_id).encode())
     print("Book returned successfully!")
 
-#🖥️ Sample Input / Output
+
+Sample Input / Output
 Borrow Book – Example
 Enter Book ID to search: 101
 
